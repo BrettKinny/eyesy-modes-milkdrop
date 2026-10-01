@@ -31,6 +31,30 @@ Shipped as presets 13–16, preset-data only, validated:
 | `starfield-drift` | CPU particle starfield: 224 stars streaming from a vanish point, rebuilt as meshes per frame | tranche 3 item 7 (engine CPU pool) |
 | `mirror-window` | textured-reflect shape as a per-pixel window rather than geometry (lossy, see item 8). **Retired before the public release (slot kept).** | tranche 3 item 8 (platform workaround) |
 
+### Promoted out to standalone scenes (2026-09-18)
+
+Four of this catalog's presets are no longer preset-only: they now ship as
+autonomous scenes in `eyesy-modes-bespoke`, each with its own folder, its own
+copy of the fragment it needs, and the preset's equations **transpiled into
+native Lua** (no `lib/evaluator.lua`, no runtime string evaluation, no per-frame
+allocation). The promotion unchains the parameter that the engine spends on knob
+2 (preset index) and hands it back to the scene's own geometry, and it drops the
+generic five-pass pipeline for a purpose-built three-pass one.
+
+| Preset (this catalog) | Standalone scene | Fragment(s) | Knob 2 now means |
+| --- | --- | --- | --- |
+| `kaleido-fold` | `kaleido-fold` | `kaleido.frag` (warp fold), `comp.frag` | mirror wedge count 4..16 |
+| `plasma-veil` | `plasma-veil` | `warp.frag`, `plasma.frag` | interference spatial frequency 0.4..3.0 |
+| `starfield-drift` | `starfield-warp` | `warp.frag`, `comp.frag` | field spread / vanish-point precession |
+| `spirolateral` | `spirolateral` | `warp.frag`, `comp.frag` | spiral winding 1..8 turns |
+
+Both copies of each preset are **kept**: the preset remains in
+`presets/presets.lua` so the engine catalog is unchanged and existing saved
+scenes still restore by index (`docs/PRESET-CONTRACT.md`: extend, never
+reorder). The standalone scene is the destination for these looks; the preset is
+the engine's rendering of the same equations. Report and device tier gates:
+`eyesy-modes-bespoke/docs/milkdrop-promotion/`.
+
 ## Next tranche — requires fragment or engine work
 
 **The preset-only seam is nearly exhausted.** Every remaining ranked archetype needs
@@ -85,6 +109,47 @@ parameter that reaches no uniform. `tools/check_render.py`
 driver and asserts its neutral identities. Add the fragment, wire the archetype,
 then run `python3 tools/check_fragments.py`, `python3 tools/check_presets.py` and
 `python3 tools/check_render.py`.
+
+## What is open now (2026-09-18)
+
+All three gates pass on the current tree — 24 presets (five of them retired
+placeholders), 10 fragments, 17 render cases on llvmpipe — and none of them
+covers cost or the look, which is exactly what the list below is.
+
+1. **Five presets have no device tier record at all.** Twelve presets were added
+   after the original tier table — slots 13-24, the `Done` table plus tranches 2 and
+   3 — and none of the twelve carries a cost measurement. The README's cost table and
+   `eyesy-platform/docs/SCENE-LIBRARY.md` both stop at slot 12 (measured on
+   `dev-e46f786ab44d`), and a scan of 2,707 `report.json` files across both repos
+   finds no tier record naming any slot 13-24. Four of the twelve are now covered
+   from the bespoke side (`kaleido-fold` 32.31, `plasma-veil` 32.12, `starfield-warp`
+   32.21, `spirolateral` 32.18 ms — promotion checkpoint in
+   `eyesy-modes-bespoke/docs/milkdrop-promotion/`) and three (slots 14, 15, 24) are
+   retired placeholders, which leaves five unmeasured here: `flow-silk-warp`,
+   `softmax-halo`, `roto-streaks`, `painterly-flow`, `reaction-field`. The
+   multi-gather archetypes are the suspects — `reaction-field` (a Gray-Scott step per
+   pixel per frame), `roto-streaks` (8-tap gather), `painterly-flow` (3 gathers),
+   `softmax-halo`.
+   *The harness already supports this:* `tools/benchmark.py --replay` passes an input
+   replay to each run, and this mode's knob 2 **is** the preset index, so a replay
+   that sets knob 2 to the preset's normalized slot and holds it for 600 frames
+   yields that preset's p50; `eyesyctl headless-test --replay` forwards it to the
+   device. This is the batch this repo owed next.
+2. **The soak leak is still unattributed.** Same-mode RSS growth ≈ +2.2 MB/h
+   (~73 KB per reload), 8× the prior rate and reload-correlated, flagged at the time
+   as "milkdrop preset loads are new" (`eyesy-platform/ROADMAP.md` 2026-09-16 and
+   the private 2026-09-16 soak report). The attribution run
+   (switching disabled vs enabled) is owed; if preset loading is the cause the fix
+   lands in `milkdrop/main.lua`.
+3. **The strategic fork: keep promoting, or continue the engine variant pass?**
+   `eyesy-platform/ROADMAP.md` §1 still frames the remaining milkdrop work as "the variant
+   pass and tier tuning". Four presets now also exist as bespoke scenes with knob 2
+   freed, and the promotion method plus its cost constants are recorded in
+   `eyesy-modes-bespoke/docs/milkdrop-promotion/00-checkpoint.md`. Engine variants
+   are cheap parameter sets that inherit the generic five-pass pipeline and the
+   preset-index knob; a promotion costs a scene but buys the full knob contract and
+   its own tier budget. Decide before the next batch, because it sets what the batch
+   is.
 
 ## Defects found while porting
 
@@ -167,12 +232,30 @@ and constructs; never copy a file.
 
 ## Routing this through the pipeline
 
-The intended mechanism is Pi Agent's Development Pipeline (managed clone already
-provisioned at `nightshift-repositories/BrettKinny/eyesy-modes-milkdrop`). It cannot
-take this repo today: `pi-agent/src/development/pipeline.ts:362` hardcodes
-`allowedScope: ["src", "test", "tests", "features"]`, enforced in
-`src/coding/packet-runner.ts`, and nothing in this repo lives there. Until that
-becomes repository-derived, this work runs as direct delegation.
+The intended mechanism is Pi Agent's Development Pipeline (managed clone at
+`nightshift-repositories/BrettKinny/eyesy-modes-milkdrop`). **The scope blocker
+recorded here earlier is gone — the scope is now repository-derived, not
+hardcoded.** `pi-agent`'s `src/development/scope.ts` defines
+`PIPELINE_SCOPE_PATH = ".pi-agent/pipeline.json"` and `readAllowedScope()`, which
+reads that file from the worktree recreated off the frozen baseline;
+`src/development/pipeline.ts:361` passes the result as the packet's `allowedScope`.
+The old `["src","test","tests","features"]` list survives only as
+`DEFAULT_ALLOWED_SCOPE`, for a repository that declares nothing, and a *malformed*
+declaration fails the job rather than silently substituting a different boundary.
+
+This repo declares its own — committed with the tranche-3 licence pass in `dee546e`:
+
+```json
+{ "allowedScope": ["milkdrop", "docs", "tools"] }
+```
+
+So `milkdrop/`, `docs/` and `tools/` are all in scope for pipeline jobs. The
+declaration deliberately does not cover `.pi-agent/`, and `readAllowedScope`
+enforces that: a declaration covering itself would let one job widen the boundary
+for every later job. Enablement is ops config invisible from the repo
+(`PIPELINE_ENABLED`, `PIPELINE_REPOSITORIES_ROOT`, `PIPELINE_WORKTREE_ROOT`); with
+those unset the pipeline is off and the work runs as direct delegation, as it has
+been.
 
 Two lessons from the first overnight run, worth keeping:
 

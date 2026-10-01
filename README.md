@@ -58,6 +58,31 @@ Per preset, 600 frames offscreen on VC4 V3D 2.1 with a tier-A neighbour
 Slots 2 and 7 (the two glow-composite presets measured here before) are retired;
 see the presets file.
 
+**Coverage:** this table is the **first twelve** slots. Slots 13-24 — everything
+added by the tranche ports — have no device cost measurement at all. Three of them
+(14, 15, 24) are retired placeholders, and four are now tier-gated as bespoke scenes
+instead (`kaleido-fold` 32.31, `plasma-veil` 32.12, `starfield-warp` 32.21,
+`spirolateral` 32.18 ms); the other five, the harness that
+measures them, and the archetypes most likely to miss tier are listed in
+`docs/PORT-BACKLOG.md` under "What is open now".
+
+### Promoted to standalone scenes
+
+Four presets are also rendered as autonomous scenes in `eyesy-modes-bespoke` —
+`kaleido-fold`, `plasma-veil`, `starfield-warp` (from `starfield-drift`) and
+`spirolateral` — each with its own fragment copies and the preset's equations
+transpiled into native Lua. Report and tier gates: `docs/milkdrop-promotion/` in
+that repo; the promotion table is in `docs/PORT-BACKLOG.md`.
+
+**This catalog is not the source for those scenes, and nothing was removed from
+it.** `preset` is a 1-based index and a saved scene restores by it
+(`docs/PRESET-CONTRACT.md`), so the catalog is extended and never reordered or
+pruned — promotions included. A promoted scene and its preset are independent
+renderings of the same equations: a retune here does not propagate there, and a
+retune there is a deliberate edit. Removing a preset is a separate decision that
+needs an index-preserving plan (a tombstone entry, or accepting that saved scenes
+on that slot break); it is never a side effect of promotion.
+
 ## Engine facts worth keeping
 
 - **Composite through a content-resolution target, then upscale.** Full-res
