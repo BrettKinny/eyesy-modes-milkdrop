@@ -77,13 +77,12 @@ see the presets file.
   target and never adds light to it; the composite pass is display-only. Adding
   light inside a feedback loop self-amplifies to white.
 
-## Docs and evidence
+## Docs
 
 | Path | What it is |
 | --- | --- |
 | `docs/research/` | the MilkDrop3 / Winamp-AVS / BeatDrop dossiers — see its README |
 | `docs/trackB-plan/` | the Track B brief the engine was built against, and its research notes |
-| `evidence/milkdrop/` | the mode's verification `summary.json` and `contact-sheet.png` (the deterministic A/B contract verdict from `eyesy-platform/tools/scene_verify.py`) |
 | `docs/PRESET-CONTRACT.md` | what the preset gate enforces, and the checks it deliberately cannot make |
 | `docs/FRAGMENT-CONTRACT.md` | what the fragment gate enforces: the host contract and the uniform traffic in both directions |
 | `docs/RENDER-CONTRACT.md` | what the render gate proves on a real driver, and what it cannot (the look, the device, cost) |
