@@ -21,9 +21,7 @@ From the engine repo:
 ```
 
 `sync` is required before `./eyesyctl package`; `preview`/`test` resolve across
-the packs directly. The engine's per-mode evaluator tests
-(`tests/test_milkdrop_evaluator.py` in the engine repo) drive
-`milkdrop/lib/evaluator.lua` from this pack and skip when it is absent.
+the packs directly.
 
 ## Layout
 
@@ -131,6 +129,15 @@ than one that refuses to run.
 python3 tools/check_presets.py     # catalog: schema, archetypes, every equation compiles
 python3 tools/check_fragments.py   # fragments: host contract + uniform traffic, both ways
 python3 tools/check_render.py      # fragments: compile + render on a real GLES2 driver
+```
+
+The evaluator itself has unit tests that drive `milkdrop/lib/evaluator.lua` in a
+Lua subprocess and check its arithmetic against an independent Python
+implementation, then run every preset in the catalog for finite output and
+on-screen custom-wave points. They skip when no Lua interpreter is on `PATH`:
+
+```sh
+python3 -m unittest tests.test_milkdrop_evaluator
 ```
 
 `check_fragments.py` runs the real mode against a recording stub of the engine and

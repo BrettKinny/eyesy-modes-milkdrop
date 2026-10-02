@@ -15,10 +15,10 @@ Exit codes: `0` pass, `1` a preset broke the contract, `2` the tool could not ru
 
 ## Why this exists
 
-The repository had no gate of its own. Its only verification lives in another
-repository (`eyesy-platform/tests/test_milkdrop_evaluator.py`, which drives this pack's
-`lib/evaluator.lua` and skips when the pack is absent), so a standing port loop had
-nothing to run on the repo it was changing. A port that "looks right" but fails to
+The repository had no gate of its own. Its only verification was the evaluator
+test suite, which then lived in the engine repository (it is now
+`tests/test_milkdrop_evaluator.py` here), so a standing port loop had nothing to
+run on the repo it was changing. A port that "looks right" but fails to
 compile is caught here instead of on the device.
 
 ## How it checks
