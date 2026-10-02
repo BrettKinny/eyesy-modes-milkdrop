@@ -109,6 +109,7 @@ on that slot break); it is never a side effect of promotion.
 | `docs/PRESET-CONTRACT.md` | what the preset gate enforces, and the checks it deliberately cannot make |
 | `docs/FRAGMENT-CONTRACT.md` | what the fragment gate enforces: the host contract and the uniform traffic in both directions |
 | `docs/RENDER-CONTRACT.md` | what the render gate proves on a real driver, and what it cannot (the look, the device, cost) |
+| `docs/TRACKB-VARIANT-PASS.md` | the variant pass: per-family variant axes, the 100+ target, and the QC gate every batch clears |
 | `docs/PORT-BACKLOG.md` | the porting loop's ranked work list, the licence-verified fragment sources, and the discovery entry points |
 | `tools/` | the verification gates (`check_presets.py`, `check_fragments.py`, `check_render.py`) and the negative suite that proves the fragment gate fires (`check_fragments_negatives.py`) |
 
