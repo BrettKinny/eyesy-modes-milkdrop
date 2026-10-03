@@ -19,7 +19,7 @@ gate checks and still be rejected by the driver, sample the wrong region of the
 frame, or write a flat one. The render gate is the only check in this repo that
 compiles and runs the shaders for real.
 
-It is not a nicety. The two defects recorded in `docs/PORT-BACKLOG.md` — the warp
+It is not a nicety. The two defects described in [porting](PORTING.md#two-bugs-found-by-rendering) — the warp
 chain sampling half a screen below the intended uv, and the inverted `zoomexp`
 exponent — were both invisible to every other check and both found by rendering.
 The identity cases here are their regression tests: `warp_default` with `zoom 1 /
@@ -31,7 +31,7 @@ returned it shifted 128 rows down on a 256-row frame.
 `tools/gl_render.c` opens an EGL context (pbuffer, falling back to surfaceless),
 compiles the fragment under the host's own preamble, renders one full-screen quad
 into an RGBA8 framebuffer and reads the frame back. It reproduces the engine's
-contract from `engine/src/runtime.cpp`: the fragment body verbatim with no
+contract from the platform's `engine/src/runtime.cpp`: the fragment body verbatim with no
 `#version`, `uv = position.xy / u_resolution` with the origin top-left, and
 `u_resolution` / `u_time` filled the way the host fills them.
 
@@ -45,8 +45,7 @@ and a fragment the mode never draws is a failure rather than a silent skip.
 The input texture is generated in the harness: a ring and eight spokes for angular
 structure, over a diagonal ramp with an off-centre blob for asymmetry. The
 asymmetry is deliberate — a symmetric pattern makes mirror- and direction-sensitive
-checks pass vacuously, which is exactly how the first version of the reflect
-test fooled itself.
+checks pass vacuously.
 
 **Checks per case:**
 
@@ -82,7 +81,7 @@ should trust.
   C). Nothing here predicts frame time.
 - **The whole frame.** It renders one fragment, not the pass chain. Whether the
   mode's warp → waves → composite sequence produces the right final image is the
-  device run's business (`eyesy-platform/tools/scene_verify.py`).
+  device run's business (the platform's `tools/scene_verify.py`).
 - **Licensing**, as with every gate here. It cannot tell a self-authored port from
   a copied shader.
 

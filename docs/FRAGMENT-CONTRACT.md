@@ -6,7 +6,7 @@ or archetype wiring leaves a branch.
 
 ```sh
 python3 tools/check_fragments.py                     # the library in place
-python3 tools/check_fragments.py --expect-fragments 13 # also assert the size
+python3 tools/check_fragments.py --expect-fragments 10 # also assert the size
 python3 tools/check_fragments.py --json              # machine-readable report
 ```
 
@@ -60,7 +60,7 @@ parameter rather than its output.
 
 **Host-bound uniforms count as supplied.** The host binds `u_resolution`, `u_time`,
 `u_energy` and `u_control` on every shader draw, plus `u_audio` when an audio
-texture is allocated (`engine/src/runtime.cpp:713-719`), independently of the
+texture is allocated (the platform's `engine/src/runtime.cpp`), independently of the
 mode's own args. They satisfy a fragment's declaration. They are deliberately not
 treated as *received* uniforms, because the host hands them to every fragment — a
 fragment that does not declare `u_time` is normal, not a dead parameter.
@@ -70,7 +70,7 @@ header documents its own uniforms, so an unstripped search for `decay` or
 `sampler2D` would be satisfied by the prose alone.
 
 `--expect-fragments N` is opt-in, for the same reason the preset gate's size
-assertion is: the library grows as archetypes are ported.
+assertion is: the library grows as archetypes are added.
 
 ## Proving the gate fires
 
@@ -126,6 +126,5 @@ source of truth is `main.lua`, which is why the gate runs it. `warp_params.dense
 the one preset parameter that is not a uniform: it selects the reduced content target.
 
 `warp_blur` needs a second texture, so the mode runs a `blur1` pass over the feedback
-target *before* the warp whenever `warp_archetype = blur`, into the same `blur` target
-the glow composite later fills from `back`. The two never need it at the same moment,
-which is why no extra target was needed — the budget is already full.
+target *before* the warp whenever `warp_archetype = blur`, into the mode's `blur`
+target. No other pass uses that target.

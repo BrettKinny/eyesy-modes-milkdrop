@@ -15,11 +15,10 @@ Exit codes: `0` pass, `1` a preset broke the contract, `2` the tool could not ru
 
 ## Why this exists
 
-The repository had no gate of its own. Its only verification was the evaluator
-test suite, which then lived in the engine repository (it is now
-`tests/test_milkdrop_evaluator.py` here), so a standing port loop had nothing to
-run on the repo it was changing. A port that "looks right" but fails to
-compile is caught here instead of on the device.
+A preset that "looks right" in review can still fail to compile, or produce
+NaN on the first loud frame. This gate catches that on your computer instead of
+on the device. The evaluator's own arithmetic is covered separately by
+`tests/test_milkdrop_evaluator.py`.
 
 ## How it checks
 
@@ -42,14 +41,14 @@ opinion that can drift from the engine.
 
 **Warns (never fails) on:** identifiers that are never assigned in the preset and
 are not readable engine inputs. This matters because the evaluator resolves an
-unknown name to **0** rather than erroring (`lib/evaluator.lua:23` — "NaN and +/-inf
-collapse to 0"), so a mistyped input like `bass_att1` silently reads as zero and the
+unknown name to **0** rather than erroring (see the header comment of
+`lib/evaluator.lua`), so a mistyped input like `bass_att1` silently reads as zero and the
 preset still compiles and still runs. It is a warning rather than a failure because a
 legitimate custom variable may be assigned in another block of the same preset, and
-the loop must not be blocked by a heuristic.
+a heuristic should not block a valid preset.
 
-**`--expect-count N` is opt-in.** The catalog grows as the loop ports archetypes, so
-asserting a size by default would fail on every successful port.
+**`--expect-count N` is opt-in.** The catalog grows with every new preset, so
+asserting a size by default would fail on every addition.
 
 ## What it does not check
 
@@ -62,12 +61,13 @@ asserting a size by default would fail on every successful port.
   contact sheet.
 - **Cost.** Tier is a device measurement (offscreen p50 on VC4, ≤33.3 ms for tier C).
   Nothing here predicts frame time.
-- **Preset order.** It does not police index order, and this matters more than it
+- **Preset order.** It does not police slot order, and this matters more than it
   looks: `preset` is a 1-based index into the catalog (the `e.param("preset", …)`
   call in `main.lua`), and a saved state restores by that index (the
   `clamp_num(saved.preset, 1, 1, #PRESETS)` line in `main.lua`), so reordering
   silently changes what an existing saved scene plays. Extend the catalog; never
-  reorder it. That is a reviewer rule, not a mechanical one.
+  reorder it or delete an entry (retire it with a placeholder instead). That is a
+  reviewer rule, not a mechanical one.
 
 ## Interpreter requirement
 
@@ -77,11 +77,10 @@ parsing the catalog in Python would mean a second implementation of Lua table
 semantics that can drift from the engine's, and a validator that silently checks less
 is worse than one that refuses to run. On a host without Lua the tool exits `2` with
 that reason, and the honest conclusion is that this repository cannot be validated
-there — which is exactly what blocks routing this repo through a Lua-less pipeline
-host.
+there.
 
 ## Contract sources
 
 `milkdrop/main.lua` (the header comment documents the per-frame writable vars and the
 knob map), `milkdrop/lib/evaluator.lua` (the function set and the finite-result
-guarantee), and `docs/trackB-plan/BRIEF.md` (the preset schema).
+guarantee), and [the preset format](PRESET-FORMAT.md) (the schema).

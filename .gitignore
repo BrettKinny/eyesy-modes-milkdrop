@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 # device evidence is kept privately, outside the public repos
 evidence/
+# local agent tooling config
+.pi-agent/
