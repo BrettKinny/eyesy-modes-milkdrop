@@ -79,7 +79,7 @@ A gate that only ever says PASS is worth nothing, so
 per check and asserts the gate fails, naming the culprit:
 
 ```sh
-python3 tools/check_fragments_negatives.py            # 15 cases
+python3 tools/check_fragments_negatives.py            # 17 cases
 python3 tools/check_fragments_negatives.py --list     # case names and expectations
 ```
 
