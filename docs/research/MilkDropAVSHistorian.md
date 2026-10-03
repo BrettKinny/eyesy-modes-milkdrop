@@ -1,6 +1,11 @@
 # MilkDrop / AVS Historian — lineage, 15 preset archetypes, eyesy mapping
 
-> Converted from a research-agent JSON artifact to Markdown on 2026-09-17; content unchanged.
+> Background research, written in September 2026 before this pack's engine was built,
+> and kept as a record of the reasoning. Paths like `docs/API.md` refer to the
+> [eyesy-platform](https://github.com/BrettKinny/eyesy-platform) repo. `phosphor`,
+> `kali-bloom` and `reaction-diffusion` were earlier experimental feedback scenes that
+> are not part of any public pack. The port plan here was a starting point; the engine
+> that was built is described in this repo's README and `docs/`.
 
 ## Summary
 
@@ -11,10 +16,6 @@ Research document grounding a 100+ scene library for eyesy in the Winamp-era vis
 | path | description |
 | --- | --- |
 | docs/API.md | eyesy scene API: ctx.audio/midi/knobs/trigger, render targets (8, ping-pong), ES2 fragment shaders, meshes (8192 verts), cosine palettes, u_audio sampler — the hard platform contract every archetype maps to. |
-| modes/phosphor/main.lua | Reference idiom for feedback+decay (half-res ping-pong targets), CPU audio-trace polylines (N=384), trigger re-seed of Lissajous ratios. Canonical 'oscilloscope focus' archetype. |
-| modes/phosphor/phosphor.frag | Reference feedback-decay shader: rotated/zoomed prev-frame sample × decay + vignette; carries the 'no bloom inside feedback loop' comment. |
-| modes/kali-bloom/kali.frag | Reference per-pixel field shader (10-iteration kaliset) + MilkDrop-style feedback with bounded max() composite; carries the 'clamp denominator 1e-9, not 1e-4' trap comment. |
-| modes/kali-bloom/main.lua | Half-res target + upscale pattern for a shader-heavy scene (~30ms on device); the perf envelope template for Tier 2 scenes. |
 ## Architecture
 
 Three-layer pipeline already proven in-repo (half-res ping-pong feedback targets upscaled to 1280x720, immediate prims + line-strip meshes on top, ES2 fragment shaders binding prior targets as samplers) is the shared substrate for all 15 archetypes. Cross-cutting discipline from MilkDrop2: keep a 'warp' pass that writes INTO the decayed feedback buffer and a display-only 'composite' pass that never samples a target it writes — producing MilkDrop's signature persistence while sidestepping the in-repo bloom self-amplify trap. Warp = per-pixel displacement in the fragment shader reading the previous target (Butterchurn's weak-GPU path; no vertex texture fetch exists in GLES2). CPU cost confined to per-frame polyline/particle mesh rebuilds (<=1024 pts) with persistent mesh handles. Full-res only for trivial single-pass scenes; heavy scenes at 640x360 targets upscaled.
@@ -107,7 +108,7 @@ CROSS-CUTTING DESIGN RULES FOR THE FLEET (from MilkDrop2 + in-repo comments):
 5. Preserve both in-repo traps as shader comments (bloom-in-loop; kaliset clamp 1e-9).
 
 SOURCES (real, not fabricated):
-- In-repo: docs/API.md; modes/phosphor/{main.lua,phosphor.frag}; modes/kali-bloom/{main.lua,kali.frag}.
+- Platform: docs/API.md (eyesy-platform).
 - shoggothox.com/blog/history-of-visualizers.html — lineage Lissajous->Cthugha->AVS->MilkDrop->Butterchurn; MilkDrop warp-mesh 32x24-48x36, EEL, MilkDrop2 warp/composite shaders, randomized preset wipes, self-normalizing audio.
 - geisswerks.com/milkdrop/milkdrop_preset_authoring.html — Geiss primary authoring guide (per-frame/per-vertex equations, warp mesh, waves, shapes, motion vectors) [HTTP 406 to reader; content corroborated via MilkDrop3 pipeline doc + authoring lineage].
 - deepwiki.com/milkdrop2077/MilkDrop3/3.4-rendering-pipeline — warp shader reads previous framebuffer and displaces samples per-vertex; per-pixel logic in warp HLSL.

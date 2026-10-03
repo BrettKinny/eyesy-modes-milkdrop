@@ -1,6 +1,6 @@
 # BeatDrop fork porting assessment (OfficialIncubo/BeatDrop-Music-Visualizer)
 
-Researched 2026-09-16 during Track B. Repo identity: the user-facing name
+Researched 2026-09-16, while the engine was being built. Repo identity: the user-facing name
 "BeatDropVis" resolves to `OfficialIncubo/BeatDrop-Music-Visualizer` — an
 actively developed fork (146★, updated 2026-09-15) of Maxim Volskiy's
 `mvsoft74/BeatDrop` (94★), the standalone MilkDrop2 engine that MilkDrop3
@@ -25,7 +25,7 @@ unless cleared, per the standing licensing note.
    bank (draw_shader supports vectors) or a 1×64 target texture. `frac()`
    errors on their side; expect similar care. Feeds milkdrop-engine v2 and
    any audio-reactive scene. Real engineering weight (FFT texture plumbing),
-   so: post-v1 Track B follow-up.
+   so: a later follow-up, not part of the first engine.
 2. **Nine additional community simple waveforms** — procedural wave_mode
    renders (mesh-drawable, Lua-side, no shader work). Cheap ports that widen
    the variant pool's motion vocabulary. Source: fork's wave render switch in

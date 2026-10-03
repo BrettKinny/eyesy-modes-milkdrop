@@ -1,6 +1,11 @@
 # MilkDrop 3 Port Research for EYESY (GLES2/Lua) — feasibility and port plan
 
-> Converted from a research-agent JSON artifact to Markdown on 2026-09-17; content unchanged.
+> Background research, written in September 2026 before this pack's engine was built,
+> and kept as a record of the reasoning. Paths like `docs/API.md` refer to the
+> [eyesy-platform](https://github.com/BrettKinny/eyesy-platform) repo. `phosphor`,
+> `kali-bloom` and `reaction-diffusion` were earlier experimental feedback scenes that
+> are not part of any public pack. The port plan here was a starting point; the engine
+> that was built is described in this repo's README and `docs/`.
 
 ## Summary
 
