@@ -14,7 +14,7 @@
 // Self-authored implementation; the gather direction here is rotational, which
 // is what makes it a roto-blur rather than a linear one.
 //
-// Count: 8 taps, the ceiling docs/PORT-BACKLOG.md sets, so this is the most
+// Count: 8 taps, the ceiling set for this archetype, so this is the most
 // expensive composite in the library — 8 gathers per pixel at content
 // resolution. It is display-only, so it costs the same whether or not the
 // scene is fast-moving.

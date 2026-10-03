@@ -1,7 +1,6 @@
 -- modes/milkdrop/presets/presets.lua
--- Presets for the milkdrop engine (Track B). Schema: see
--- local/reports/trackB-plan/BRIEF.md "Preset schema"; every equation string is
--- AVS-subset code evaluated by modes/milkdrop/lib/evaluator.lua.
+-- Presets for the milkdrop engine. Format: docs/PRESET-FORMAT.md; every
+-- equation string is AVS-subset code evaluated by lib/evaluator.lua.
 --
 -- Coordinates: per-point x/y are normalised 0..1 with the visual origin at
 -- (0.5, 0.5); the engine derives rad/ang from (x - 0.5, y - 0.5) before it
@@ -10,19 +9,16 @@
 -- custom names persist across frames because the engine merges evaluator
 -- results into its state table and passes that back as env.
 --
--- Retired: slots 2, 7, 14, 15 and 24 hold placeholders (`retired-NN`). Their
--- presets were removed before the public release; the slots stay so every
--- other preset keeps its index.
+-- Append only: a preset's position is its slot, and saved scenes restore by
+-- slot. Never insert, reorder or delete. Retired slots (2, 7, 14, 15 and 24)
+-- hold `retired-NN` placeholders so every other preset keeps its index.
 --
--- Layout: slots 1-2 are the T1 seed presets; slots  3-12 are the T3 staging
--- pack(local/reports/trackB-plan/preset-pack.lua), merged verbatim by the
--- T4 integration pass; slots  13-16 are the 2026-09-17 overnight batch:
--- self-authored ports of the ranked archetypes (_t2-research.txt Part 3 +
--- docs/research/MilkDropAVSHistorian.md), appended in place. Slots 17-20 are the
--- tranche-2 batch — the archetypes that needed a new fragment rather than a new
--- preset over an existing one: the soft-max, interference-field and roto-blur
--- composites, and the kaleidoscope fold (docs/candidates/03- and
--- 04-fragment-sources-*).
+-- Slots 1-16 run on the default composite and the default or sphere
+-- warps. Slots 17-23 each introduced an archetype that needed a new fragment
+-- or mode feature: the soft-max, interference-field and roto-blur composites,
+-- the kaleidoscope fold, the painterly blur warp, reaction-diffusion and the
+-- particle starfield. "Historian A<n>" below refers to the archetype map in
+-- docs/research/MilkDropAVSHistorian.md.
 --
 -- Licensing: all equations are self-authored ports of the archetypes
 -- documented in docs/research/MilkDrop3Portability.md and
@@ -95,7 +91,7 @@ return {
     q = {},
   },
 
-  ---------------------------------------------------------------------- 3/12
+  ------------------------------------------------------------------ slot 3
   -- Archetype: zoom-drift. Historian A1 (oscilloscope focus) / A7 (feedback
   -- drift) family: the classic darken-drift machine — slow zoom/rot/pan of
   -- the decayed feedback with a line wave riding on top. Self-authored:
@@ -139,7 +135,7 @@ return {
     q = { 0.5, 0.7, 0.6 },
   },
 
-  ---------------------------------------------------------------------- 4/12
+  ------------------------------------------------------------------ slot 4
   -- Archetype: rot-spin. Historian A7 (bloom spiral / spinner) family:
   -- the feedback buffer rotates and breathes with a sinusoidal zoom,
   -- reseeded per trigger. Self-authored: spin rate is a reseeded constant
@@ -174,7 +170,7 @@ return {
     q = { 0, 0.8, 0.7 },
   },
 
-  ---------------------------------------------------------------------- 5/12
+  ------------------------------------------------------------------ slot 5
   -- Archetype: warp-oscillation. Historian A9 (liquid metal / blobby)
   -- family: the default warp's spherical pinch (1/(r+eps) falloff around
   -- the focus) is driven by a two-frequency oscillation plus a bass kick,
@@ -220,7 +216,7 @@ return {
     q = { 0, 0.7, 0.6 },
   },
 
-  ---------------------------------------------------------------------- 6/12
+  ------------------------------------------------------------------ slot 6
   -- Archetype: sphere-rush. Historian A8 (tunnel warp) family: the sphere
   -- archetype's radial pinch (q += sphere*q/(r+0.05), see
   -- frag/warp_sphere.frag) is driven positive and hard so the feedback is
@@ -259,7 +255,7 @@ return {
     decay = 0.96,
     q = { 0, 1, 0.7 },
   },
-  ---------------------------------------------------------------------- 7/12
+  ------------------------------------------------------------------ slot 7
   -- Slot 7 is retired. The preset that lived here was removed before the
   -- public release, and this placeholder holds the slot so every later preset
   -- keeps its index (saved scenes restore by index: docs/PRESET-CONTRACT.md).
@@ -284,7 +280,7 @@ return {
     q = {},
   },
 
-  ---------------------------------------------------------------------- 8/12
+  ------------------------------------------------------------------ slot 8
   -- Archetype: per-frame q-bridge demo. A didactic preset: every q-pool
   -- slot is seeded from rand in per_frame_init (q1..q32 = 0.1 + 0.8*rand)
   -- and per_frame integrates them in a chain — each q advances by a
@@ -377,7 +373,7 @@ return {
     q = {},
   },
 
-  ---------------------------------------------------------------------- 9/12
+  ------------------------------------------------------------------ slot 9
   -- Archetype: custom-wave ring. One custom wave whose points sit on a
   -- circle (x = 0.5 + r*cos(2*pi*sample), y = 0.5 + r*sin(2*pi*sample))
   -- with the radius modulated by a per-point angular harmonic whose order
@@ -421,7 +417,7 @@ return {
     q = { 0, 3, 0.7, 0.6 },
   },
 
-  ---------------------------------------------------------------------- 10/12
+  ------------------------------------------------------------------ slot 10
   -- Archetype: custom-wave harmonic petals. The superscope/A15 family,
   -- self-authored: the point position is a sum of two radial harmonics of
   -- theta (radius = 0.15*sin(3*theta + q1) + 0.1*sin(7*theta - q2)), so
@@ -468,7 +464,7 @@ return {
     q = { 0, 0, 0.7, 3 },
   },
 
-  ---------------------------------------------------------------------- 11/12
+  ------------------------------------------------------------------ slot 11
   -- Archetype: built-in wave_mode spectrum. The only preset in the pack
   -- that leans on the engine's built-in wave rendering (wave_mode = 3,
   -- spectrum) rather than custom per-point wave code: no waves table, the
@@ -505,7 +501,7 @@ return {
     q = { 0, 0.7 },
   },
 
-  ---------------------------------------------------------------------- 12/12
+  ------------------------------------------------------------------ slot 12
   -- Archetype: beat-pulse decay. Historian A4 (beat pulse / shockwave)
   -- family, feedback-native: every frame the decay constant is pulled down
   -- by the bass attack (bass_att), so hard hits bleed the buffer faster
@@ -553,8 +549,8 @@ return {
     q = { 1, 0.7 },
   },
 
-  ---------------------------------------------------------------------- 13/16
-  -- Archetype: flow-silk warp. _t2-research A-4 (Flexi - Buttermilk silk):
+  ------------------------------------------------------------------ slot 13
+  -- Archetype: flow-silk warp, after Flexi's "Buttermilk" silk look:
   -- multi-frequency sine displacement of the decayed field. Our warp fragment
   -- is not per-pixel scriptable, so the port expresses the silk through per-frame
   -- translate/zoom/rot/warp terms: three time-integrated phases (q1..q3,
@@ -594,7 +590,7 @@ return {
     q = { 0, 0, 0, 0.7 },
   },
 
-  ---------------------------------------------------------------------- 14/16
+  ------------------------------------------------------------------ slot 14
   -- Slot 14 is retired. The preset that lived here was removed before the
   -- public release, and this placeholder holds the slot so every later preset
   -- keeps its index (saved scenes restore by index: docs/PRESET-CONTRACT.md).
@@ -619,7 +615,7 @@ return {
     q = {},
   },
 
-  ---------------------------------------------------------------------- 15/16
+  ------------------------------------------------------------------ slot 15
   -- Slot 15 is retired. The preset that lived here was removed before the
   -- public release, and this placeholder holds the slot so every later preset
   -- keeps its index (saved scenes restore by index: docs/PRESET-CONTRACT.md).
@@ -644,9 +640,9 @@ return {
     q = {},
   },
 
-  ---------------------------------------------------------------------- 16/16
-  -- Archetype: spirolateral point cloud. _t2-research B-13 (drozozilla -
-  -- Spiromachia): per-vertex line spirals modulated by bass. Two custom
+  ------------------------------------------------------------------ slot 16
+  -- Archetype: spirolateral point cloud, after drozdzilla's "Spiromachia"
+  -- look: per-vertex line spirals modulated by bass. Two custom
   -- waves trace counter-rotating spirals(radius grows along the strip and bulges
   -- toward the tip with bass_att), spins are reseeded per trigger, the spirals'
   -- phases advance at different att rates and share a slow common rot. The
@@ -701,7 +697,7 @@ return {
     q = { 0, 0, 0,0.7 },
   },
 
-  -- Tranche-2 archetype 1 of 4: the soft-max composite. The frame is screen
+  -- Archetype: the soft-max composite. The frame is screen
   -- blended with a rotated, magnified gather of itself (comp_softmax.frag; the
   -- a+b-a*b construct from jamieowen/glsl-blend screen.glsl, MIT), so lit
   -- structure doubles into a halo with no blur pass and no gain added inside
@@ -748,7 +744,7 @@ return {
     q = { 0, 0, 0,0.6 },
   },
 
-  -- Tranche-2 archetype 2 of 4: the interference-field composite. Four
+  -- Archetype: the interference-field composite. Four
   -- incommensurable sine layers, two of them radial around orbiting centres,
   -- sum into one field that drives the scene and veils it in light
   -- (comp_plasma.frag; the plasma construct from maravexa/hyprsaver
@@ -792,7 +788,7 @@ return {
     q = { 0, 0, 0,0.5 },
   },
 
-  -- Tranche-2 archetype 3 of 4: the exact kaleidoscope fold. The warp samples
+  -- Archetype: the exact kaleidoscope fold. The warp samples
   -- the feedback through an angle folded into one half-wedge
   -- (warp_kaleido.frag; the radial-reflection construct from three.js
   -- KaleidoShader, MIT), so the frame reconstructs as N mirror-symmetric
@@ -839,7 +835,7 @@ return {
     q = { 0, 0, 0,0.5 },
   },
 
-  -- Tranche-2 archetype 4 of 4: the roto-blur composite. The frame is smeared
+  -- Archetype: the roto-blur composite. The frame is smeared
   -- along an arc about the screen centre (comp_rotoblur.frag; the weighted
   -- multi-tap gather from gl-transitions tangentMotionBlur.glsl, MIT), so lit
   -- structure drags into circular streaks — display-only, so the feedback loop
@@ -890,7 +886,7 @@ return {
     q = { 0, 0, 0,0.5 },
   },
 
-  -- Tranche-3 archetype 1: the painterly multi-blur flow. The warp gathers the
+  -- Archetype: the painterly multi-blur flow. The warp gathers the
   -- previous frame sharp and through the engine's blur1 copy at three vertical
   -- offsets (warp_blur.frag), so each frame feeds a softened version of the last
   -- one forward — the blur lives inside the feedback loop, which is what turns
@@ -936,7 +932,7 @@ return {
     q = { 0, 0, 0,0.5 },
   },
 
-  -- Tranche-3 archetype 2: Gray-Scott reaction-diffusion, one step per frame
+  -- Archetype: Gray-Scott reaction-diffusion, one step per frame
   -- inside the feedback loop (warp_diffuse.frag). The feedback target carries the
   -- two reagents — A in red, B in green and blue — and the waves this preset
   -- draws *after* the warp are the faucet: they inject B, so the pattern grows
@@ -984,7 +980,7 @@ return {
     q = { 0, 0, 0,0.5 },
   },
 
-  -- Tranche-3 archetype 3: the particle starfield. The formula pools have no
+  -- Archetype: the particle starfield. The formula pools have no
   -- arrays, so the pool lives in the mode and the preset only declares its shape
   -- (`particles`; see main.lua's particle section). 224 stars stream outward from
   -- a vanish point and are reseeded near it as they leave the frame; each is one

@@ -1,8 +1,7 @@
 -- modes/milkdrop/main.lua
--- MilkDrop-style preset engine (Track B / slice T4).
+-- MilkDrop-style preset engine.
 --
--- Contract: local/reports/trackB-plan/BRIEF.md (pipeline, preset schema, T1
--- integration notes, T3 integration decisions). Preset data lives in
+-- Preset format: docs/PRESET-FORMAT.md. Preset data lives in
 -- presets/presets.lua; every equation string is AVS-subset code evaluated by
 -- lib/evaluator.lua.
 --
@@ -31,7 +30,7 @@
 -- zoomexp rot warp sphere cx cy dx dy sx sy decay gamma bright contrast
 -- saturation hue echo sectors. A preset can bridge
 -- extra warp uniforms from per-frame variables with
--- `param_bridge = { <uniform> = "<per-frame var>" }` (T3 integration note), so
+-- `param_bridge = { <uniform> = "<per-frame var>" }`, so
 -- a reseeded axis (e.g. kaleido-fold's mirror count) stays in sync with the
 -- analytic fragment.
 --
@@ -251,7 +250,7 @@ local function build_compiled(p)
     frame = frame,
     -- per_pixel is compiled for author feedback only: the warp fragments
     -- evaluate their displacement analytically, so its outputs must not be
-    -- consumed (T1 integration notes).
+    -- consumed.
     pixel = pixel,
     waves = waves,
   }
@@ -464,7 +463,7 @@ local function warp_uniforms(w, h, feedback)
     u.blur_warp = state.blur_warp
     u.blur_spread = state.blur_spread
   end
-  -- 3) param_bridge: seed variant axes from per-frame variables (T3 note)
+  -- 4) param_bridge: seed variant axes from per-frame variables
   local bridge = preset.param_bridge
   if type(bridge) == "table" then
     for uniform, var in pairs(bridge) do
@@ -612,7 +611,7 @@ local function draw_custom_waves(w, h, detail, left, right)
       local pt = point_env
       for j = 1, n do
         local u = (j - 1) * inv
-        -- per-point env (T1 notes): x/y are normalised 0..1 about (0.5, 0.5)
+        -- per-point env: x/y are normalised 0..1 about (0.5, 0.5)
         -- and rad/ang are derived from them; value1/value2 carry the audio
         -- samples at this point.
         pt.sample = u
@@ -714,8 +713,8 @@ return {
     -- free apart from the state table.
     for i = 1, #PRESETS do compiled[i] = build_compiled(PRESETS[i]) end
 
-    -- Content targets for every size the catalog asks for (three targets:
-    -- front/back/blur, i.e. 3 of the 8 allowed).
+    -- Content targets for every size the catalog asks for: four per size
+    -- (front/back/blur/comp), so at most two sizes fit the 8 allowed.
     for i = 1, #PRESETS do
       local w, h = content_size(PRESETS[i])
       target_set(w, h)

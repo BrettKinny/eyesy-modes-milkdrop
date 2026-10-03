@@ -1,5 +1,5 @@
 -- modes/milkdrop/lib/evaluator.lua
--- AVS-subset expression evaluator for the milkdrop engine (Track B / slice T1).
+-- AVS-subset expression evaluator for the milkdrop engine.
 -- Pure Lua 5.1 / LuaJIT; also runs on 5.2-5.4 (math shims below). No eyesy deps.
 --
 --   local ev = require("lib.evaluator")
