@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      # check_render.py runs on a headless runner: use Mesa's software
+      # rasteriser through a surfaceless EGL display, not an X or Wayland one.
+      __EGL_VENDOR_LIBRARY_FILENAMES: /usr/share/glvnd/egl_vendor.d/50_mesa.json
+      EGL_PLATFORM: surfaceless
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua, C compiler and EGL/GLES2 with Mesa
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            lua5.1 gcc libegl-dev libgles-dev libegl-mesa0 libgl1-mesa-dri
+
+      - name: Preset gate
+        run: python3 tools/check_presets.py
+
+      - name: Evaluator unit tests
+        run: python3 -m unittest tests.test_milkdrop_evaluator
+
+      - name: Fragment gate
+        run: python3 tools/check_fragments.py
+
+      - name: Fragment gate negatives
+        run: python3 tools/check_fragments_negatives.py
+
+      - name: Render harness self-test
+        run: python3 tools/check_render.py --self-test
+
+      - name: Render check (EGL/GLES2, llvmpipe)
+        run: python3 tools/check_render.py
