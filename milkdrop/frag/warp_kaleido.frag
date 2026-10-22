@@ -26,7 +26,7 @@
 //   prev           sampler2D  - previous feedback frame (arg 6)
 //   zoom           float      default 1.004  (per-frame scale around (cx,cy))
 //   zoomexp        float      default 1.0    (exponent applied to the radial scale)
-//   rot            float      default 0.0    (rotation, radians)
+//   rot_cs         vec2       default (1,0)  (cos, sin of the rotation, radians)
 //   warp           float      default 0.011  (spherical pinch strength)
 //   cx             float      default 0.5    (warp focus x, uv-space)
 //   cy             float      default 0.5    (warp focus y, uv-space)
@@ -46,7 +46,7 @@ varying vec2 uv;
 
 uniform float zoom;
 uniform float zoomexp;
-uniform float rot;
+uniform vec2 rot_cs;
 uniform float warp;
 uniform float cx;
 uniform float cy;
@@ -83,15 +83,19 @@ void main() {
 // zoom: radial scale around the focus (MilkDrop spec: zoom 1.0 = no zoom);
 // zoomexp bends that zoom's curvature (spec: 1 = normal), so 1.0/1.0 is the
 // identity and the scale applied here is zoom * r^zoomexp / r.
-    q *= zoom * pow(max(rq, 1e-6), zoomexp) / (rq + 1e-6);
+    if (zoomexp == 1.0) {
+        q *= zoom;   // the identity exponent: no pow, no divide
+    } else {
+        q *= zoom * pow(max(rq, 1e-6), zoomexp) / (rq + 1e-6);
+    }
 
     // spherical pinch: the classic MilkDrop 'warp' term pushes uv outward
     // from the focus with a 1/(r+eps) falloff
     q += warp * q / (rq + 0.02);
 
     // rotation (y-up: standard 2D rotation matrix)
-    float rc = cos(rot);
-    float rs = sin(rot);
+    float rc = rot_cs.x;
+    float rs = rot_cs.y;
     q = mat2(rc, rs, -rs, rc) * q;
 
     // squash/stretch + roam translate

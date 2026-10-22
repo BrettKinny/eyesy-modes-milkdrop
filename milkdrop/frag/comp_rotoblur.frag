@@ -29,12 +29,13 @@
 //   blur_rot    float     default 0.18  (total angular sweep of the gather, radians)
 //   blur_rad    float     default 0.02  (total radial sweep, fraction of the radius)
 //   blur_mix    float     default 0.75  (blurred share; 0 = crisp frame, 1 = all blur)
-//   gamma       float     default 1.0   (exposure, pow)
-//   bright      float     default 1.0   (linear gain)
-//   contrast    float     default 1.0   (1.0 = none; >1 pushes toward 0/1)
-//   saturation  float     default 1.0   (1.0 = none; 0 = gray)
-//   hue         float     default 0.0   (hue rotation, radians)
-//   echo        float     default 0.0   (additive self-blend: ret + ret*echo)
+//   blur_step   vec2      default (0.99985, 0.0225)  (cos, sin of blur_rot / TAPS: the angle
+//                         between neighbouring taps, built once a frame in main.lua)
+//   inv_gamma    float     default 1.0   (1 / gamma: the exposure power)
+//   tone_r/g/b   vec3      default (1,0,0) (0,1,0) (0,0,1)  rows of the tone matrix
+//   tone_o       vec3      default (0,0,0)  (offset). Bright, contrast, saturation,
+//                hue and echo are one affine map, built once a frame in
+//                main.lua (tone_uniforms), so the pixel pays three dots
 // Host-bound, not in arg 5: u_resolution.
 
 precision highp float;
@@ -45,12 +46,12 @@ uniform sampler2D fb;
 uniform float blur_rot;
 uniform float blur_rad;
 uniform float blur_mix;
-uniform float gamma;
-uniform float bright;
-uniform float contrast;
-uniform float saturation;
-uniform float hue;
-uniform float echo;
+uniform vec2 blur_step;
+uniform float inv_gamma;
+uniform vec3 tone_r;
+uniform vec3 tone_g;
+uniform vec3 tone_b;
+uniform vec3 tone_o;
 uniform vec2 u_resolution;
 
 const int TAPS = 8;
@@ -70,53 +71,37 @@ void main() {
     // Per-pixel offset, so 8 discrete taps read as a smear rather than 8 ghosts.
     float jitter = hash_f(uv);
 
+    // The taps' angles are evenly spaced (blur_rot / TAPS apart), so one cos/sin
+    // pair for the first tap and a rotation by the shared step for each of the
+    // rest replace eight cos/sin pairs.
+    float f0 = jitter / float(TAPS);
+    float da0 = blur_rot * (f0 - 0.5);
+    float ca = cos(da0);
+    float sa = sin(da0);
     vec3 acc = vec3(0.0);
     float total = 0.0;
     for (int i = 0; i < TAPS; i++) {
         float f = (float(i) + jitter) / float(TAPS);
         float w = 4.0 * (f - f * f);            // triangular, peaks mid-sweep
-        float da = blur_rot * (f - 0.5);        // symmetric about the pixel
         float dr = blur_rad * (f - 0.5);
-        float ca = cos(da);
-        float sa = sin(da);
         vec2 q = p * (1.0 + dr);
         q = vec2(q.x * ca - q.y * sa, q.x * sa + q.y * ca);
         // back to y-down uv space
         vec2 suv = vec2(0.5 + q.x / aspect, 0.5 - q.y);
         acc += texture2D(fb, suv).rgb * w;
         total += w;
+        vec2 nx = vec2(ca * blur_step.x - sa * blur_step.y, sa * blur_step.x + ca * blur_step.y);
+        ca = nx.x;
+        sa = nx.y;
     }
 
     vec3 col = mix(base, acc / total, blur_mix);
 
-    // exposure
-    col = pow(max(col, 0.0), vec3(1.0 / max(gamma, 1e-4)));
+    // exposure: the feedback target is unsigned, so no max() before the pow
+    col = pow(col, vec3(inv_gamma));
 
-    // linear gain
-    col *= bright;
-
-    // contrast around 0.5
-    col = (col - 0.5) * max(contrast, 1e-4) + 0.5;
-
-    // saturation: blend toward luminance (include.fx lum weights)
-    float lum = dot(col, vec3(0.32, 0.49, 0.29));
-    col = mix(vec3(lum), col, saturation);
-
-    // hue rotation about the luminance axis (YIQ-style rotation)
-    float ch = cos(hue);
-    float sh = sin(hue);
-    float y = dot(col, vec3(0.299, 0.587, 0.114));
-    float pi_ = dot(col, vec3(0.596, -0.274, -0.322));
-    float q_ = dot(col, vec3(0.211, -0.523, 0.312));
-    float i2 = pi_ * ch - q_ * sh;
-    float q2 = pi_ * sh + q_ * ch;
-    col = vec3(
-        y + 0.956 * i2 + 0.621 * q2,
-        y - 0.272 * i2 - 0.647 * q2,
-        y - 1.106 * i2 + 1.703 * q2);
-
-    // echo: additive self-blend (MilkDrop's video-echo term, bounded)
-    col += col * echo;
+    // bright, contrast, saturation, hue and echo, folded into one matrix
+    col = vec3(dot(tone_r, col), dot(tone_g, col), dot(tone_b, col)) + tone_o;
 
     gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }

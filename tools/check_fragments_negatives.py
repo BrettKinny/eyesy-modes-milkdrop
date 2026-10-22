@@ -129,14 +129,14 @@ def duplicate_uniform(mode: Path) -> None:
 
 @case("unsupplied-uniform", expect="never supplies: bogus")
 def unsupplied_uniform(mode: Path) -> None:
-    swap(frag(mode, "comp_default.frag"), "uniform float echo;",
-         "uniform float echo;\nuniform float bogus;")
+    swap(frag(mode, "comp_default.frag"), "uniform float inv_gamma;",
+         "uniform float inv_gamma;\nuniform float bogus;")
 
 
 @case("unsupplied-sampler", expect="never supplies: ghost")
 def unsupplied_sampler(mode: Path) -> None:
-    swap(frag(mode, "comp_default.frag"), "uniform float echo;",
-         "uniform float echo;\nuniform sampler2D ghost;")
+    swap(frag(mode, "comp_default.frag"), "uniform float inv_gamma;",
+         "uniform float inv_gamma;\nuniform sampler2D ghost;")
 
 
 @case("missing-fragment-file", expect="not present in")

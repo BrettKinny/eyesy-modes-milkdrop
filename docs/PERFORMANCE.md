@@ -56,6 +56,41 @@ rate it observes. To measure a preset, run the platform's `tools/benchmark.py`
 or `./eyesyctl headless-test` with an input replay that holds knob 2 on the
 preset's slot.
 
+**Offscreen median, October 2026 (per-pixel trim).** Same method as above (600
+frames offscreen on the device GPU, live service running), measured against the
+same session's `starter` floor of 24.5 ms. Each preset was forced by a throwaway
+copy of the mode. "Before" is the pack at the previous commit.
+
+| Slot | Preset | Before | After |
+| --- | --- | --- | --- |
+| 13 | `flow-silk-warp` (the knob-centre default) | 34.7 ms | 33.2 ms |
+| 6 | `sphere-rush` | 35.2 ms | 33.9 ms |
+| 17 | `softmax-halo` | 36.5 ms | 34.5 ms |
+| 18 | `plasma-veil` | 39.8 ms | 37.8 ms |
+| 19 | `kaleido-fold` | 37.3 ms | 36.0 ms |
+| 20 | `roto-streaks` | 61.7 ms | 39.1 ms |
+| 21 | `painterly-flow` | 40.0 ms | 38.7 ms |
+| 22 | `reaction-field` | 35.1 ms | 34.0 ms |
+| 23 | `starfield-drift` | 35.1 ms | 33.3 ms |
+
+The device was slower in this session than in September for the same code, so
+compare the Before and After columns, not these figures against the tables above.
+The picture is unchanged: the largest mean difference from the old build in the
+desktop verifier's final frames is 0.1 of 255 (rounding in the folded tone matrix).
+What changed, all of it per-pixel work moved to once-a-frame Lua:
+
+- The composite's tone chain (gamma, bright, contrast, saturation, hue, echo) is
+  one `pow` and a 3x3 affine map; the matrix is built in `tone_uniforms`.
+- `warp_default` takes the focus, rotation, squash and translate as three folded
+  uniforms and skips `pow` when `zoomexp` is 1; the other warps take `cos(rot)`
+  and `sin(rot)` from Lua and skip the same `pow`.
+- `comp_rotoblur` computes one `cos`/`sin` pair and rotates by a shared step for
+  the other seven taps.
+
+Rendering the composite at 480x270 instead of 640x360 would save about 1 ms more on
+every preset, but it softens fine lines (mean difference up to 4.8 of 255 with loud
+audio), so it is not enabled.
+
 ## What keeps it fast
 
 - **Render at content resolution, then upscale.** The feedback runs at 640×360
@@ -64,6 +99,10 @@ preset's slot.
   passes would dominate the frame. Targets filter linearly, so a deliberately
   blocky look needs a nearest-neighbour sample in the shader
   (`floor(uv*RES)+0.5`).
+- **Per-pixel maths belongs in Lua.** Anything that is constant across a frame (trig of a
+  rotation, a tone matrix, a division by the aspect) costs a few instructions on every
+  one of 230k pixels if the fragment computes it. The VC4 runs about 0.08 ms per
+  instruction per 640x360 pass.
 - **Custom waves cost Lua time.** Every point runs the wave's equations on the
   CPU. Presets that only draw the built-in wave measured 27.3–27.4 ms; presets
   with one 160–384-point custom wave measured 27.8–31.8 ms. Use 160–256 samples

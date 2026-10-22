@@ -110,15 +110,15 @@ fragment-side check can see.
 
 | Fragment | Samplers | Supplied uniforms |
 | --- | --- | --- |
-| `warp_default` | `prev` | zoom, zoomexp, rot, warp, cx, cy, dx, dy, sx, sy, decay, aspect, texel |
-| `warp_sphere` | `prev` | the above + `sphere` |
-| `comp_default` | `fb` | gamma, bright, contrast, saturation, hue, echo |
+| `warp_default` | `prev` | zoom, zoomexp, warp, decay, aspect, pre, rotmap, post (focus, rotation, squash and translate folded into the last three) |
+| `warp_sphere` | `prev` | zoom, zoomexp, rot_cs, warp, cx, cy, dx, dy, sx, sy, decay, aspect, texel, sphere |
+| `comp_default` | `fb` | inv_gamma, tone_r, tone_g, tone_b, tone_o |
 | `comp_softmax` | `fb` | soft_rot, soft_scale, soft_mix + the `comp_default` set |
 | `comp_plasma` | `fb` | plasma_scale, plasma_speed, plasma_lift, plasma_glow + the `comp_default` set, and the host's u_resolution and u_time |
-| `comp_rotoblur` | `fb` | blur_rot, blur_rad, blur_mix + the `comp_default` set, and the host's u_resolution |
+| `comp_rotoblur` | `fb` | blur_rot, blur_step, blur_rad, blur_mix + the `comp_default` set, and the host's u_resolution |
 | `blur1` | `src` | texel, blur_w, blur_d, blur_scale, blur_bias |
-| `warp_kaleido` | `prev` | the `warp_default` set + `sectors`, `kaleido_angle` |
-| `warp_blur` | `prev`, `prev_blur` | the `warp_default` set + `blur_warp`, `blur_spread` |
+| `warp_kaleido` | `prev` | the `warp_sphere` set minus `sphere`, + `sectors`, `kaleido_angle` |
+| `warp_blur` | `prev`, `prev_blur` | the `warp_sphere` set minus `sphere`, + `blur_warp`, `blur_spread` |
 | `warp_diffuse` | `prev` | rd_feed, rd_kill, rd_dt, rd_scale, texel (no geometric uniforms — it never warps) |
 
 That table is a description of what the gate observes, not the source of truth — the

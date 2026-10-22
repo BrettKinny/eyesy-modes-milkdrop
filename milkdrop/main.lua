@@ -444,9 +444,26 @@ local function warp_uniforms(w, h, feedback)
 
   -- 3) engine vars (authoritative for the shared names)
   local fb = 0.5 + feedback
+  if arch == nil or arch == "default" then
+    -- the default warp takes the focus, rotation, squash and translate already
+    -- folded into three small uniforms (see warp_default.frag)
+    local aspect = w / h
+    local fx, fy = (state.cx - 0.5) * aspect, state.cy - 0.5
+    local c, s = math.cos(state.rot), math.sin(state.rot)
+    u.zoom = 1 + (state.zoom - 1) * fb
+    u.zoomexp = state.zoomexp
+    u.warp = state.warp * fb
+    u.decay = state.decay
+    u.aspect = aspect
+    u.pre = { -0.5 * aspect - fx, 0.5 - fy }
+    u.rotmap = { state.sx * c / aspect, -state.sx * s / aspect,
+                 -state.sy * s, -state.sy * c }
+    u.post = { state.dx + state.cx, 0.5 - state.dy - fy }
+    return u
+  end
   u.zoom = 1 + (state.zoom - 1) * fb
   u.zoomexp = state.zoomexp
-  u.rot = state.rot
+  u.rot_cs = { math.cos(state.rot), math.sin(state.rot) } -- once, not per pixel
   u.warp = state.warp * fb
   u.cx, u.cy = state.cx, state.cy
   u.dx, u.dy = state.dx, state.dy
@@ -498,6 +515,55 @@ local function blur1_uniforms(w, h)
   }
 end
 
+-- The composite's tone chain, built once a frame instead of once a pixel.
+-- Per pixel the chain is  pow(c, 1/gamma)  followed by bright (gain), contrast
+-- (around 0.5), saturation (blend toward luminance, lum weights .32/.49/.29), a
+-- YIQ hue rotation and echo (c + c*echo). Everything after the pow is linear in
+-- the colour, so it collapses to out = M*x + o: M = (1+echo) * Hue * Sat *
+-- bright*contrast and o = M * 0.5*(1-contrast). The fragment then pays one pow
+-- and three dot products.
+local YIQ = { { 0.299, 0.587, 0.114 }, { 0.596, -0.274, -0.322 }, { 0.211, -0.523, 0.312 } }
+local RGB = { { 1.0, 0.956, 0.621 }, { 1.0, -0.272, -0.647 }, { 1.0, -1.106, 1.703 } }
+local LUM = { 0.32, 0.49, 0.29 }
+local ROT = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } }
+local HS = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }
+local TONE_ROWS = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }
+local TONE_OFF = { 0, 0, 0 }
+
+local function tone_uniforms(u, gamma, bright, contrast, saturation, hue, echo)
+  local ch, sh = math.cos(hue), math.sin(hue)
+  local ct = math.max(contrast, 1e-4)
+  ROT[2][2], ROT[2][3], ROT[3][2], ROT[3][3] = ch, -sh, sh, ch
+  -- HS = RGB * ROT * YIQ (the hue rotation about the luminance axis)
+  for i = 1, 3 do
+    for j = 1, 3 do
+      local v = 0
+      for k = 1, 3 do
+        local rk = RGB[i][1] * ROT[1][k] + RGB[i][2] * ROT[2][k] + RGB[i][3] * ROT[3][k]
+        v = v + rk * YIQ[k][j]
+      end
+      HS[i][j] = v
+    end
+  end
+  local gain = (1 + echo) * bright * ct
+  local lift = (1 + echo) * 0.5 * (1 - ct)
+  for i = 1, 3 do
+    local row, sum = TONE_ROWS[i], 0
+    for j = 1, 3 do
+      -- saturation first: s*I + (1-s)*ones*LUM^T, then the hue map
+      local m = 0
+      for k = 1, 3 do
+        m = m + HS[i][k] * ((k == j and saturation or 0) + (1 - saturation) * LUM[j])
+      end
+      row[j] = m * gain
+      sum = sum + m
+    end
+    TONE_OFF[i] = sum * lift
+  end
+  u.inv_gamma = 1 / math.max(gamma, 1e-4)
+  u.tone_r, u.tone_g, u.tone_b, u.tone_o = TONE_ROWS[1], TONE_ROWS[2], TONE_ROWS[3], TONE_OFF
+end
+
 -- Comp archetype selection and its uniforms. Returns (shader, u).
 local function comp_shader_and_uniforms(hue_knob)
   local arch = preset.comp_archetype
@@ -518,13 +584,11 @@ local function comp_shader_and_uniforms(hue_knob)
     u.blur_rot = clamp_num(cp.blur_rot, 0.18, -PI, PI)
     u.blur_rad = clamp_num(cp.blur_rad, 0.02, -0.5, 0.5)
     u.blur_mix = clamp_num(cp.blur_mix, 0.75, 0.0, 1.0)
+    u.blur_step = { math.cos(u.blur_rot / 8), math.sin(u.blur_rot / 8) } -- TAPS = 8
   end
-  u.gamma = state.gamma
-  u.bright = state.bright
-  u.saturation = state.saturation
-  u.hue = clamp(state.hue + (hue_knob - 0.5) * HUE_SPAN, -TWO_PI, TWO_PI)
-  u.contrast = state.contrast
-  u.echo = state.echo
+  tone_uniforms(u, state.gamma, state.bright, state.contrast, state.saturation,
+                clamp(state.hue + (hue_knob - 0.5) * HUE_SPAN, -TWO_PI, TWO_PI),
+                state.echo)
   -- archetype -> fragment follows the naming convention the fragment gate
   -- enforces (comp_<archetype>.frag), so this is a lookup rather than a chain
   -- that has to be extended for every archetype.
