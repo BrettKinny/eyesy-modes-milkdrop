@@ -6,7 +6,7 @@ or archetype wiring leaves a branch.
 
 ```sh
 python3 tools/check_fragments.py                     # the library in place
-python3 tools/check_fragments.py --expect-fragments 10 # also assert the size
+python3 tools/check_fragments.py --expect-fragments 11 # also assert the size
 python3 tools/check_fragments.py --json              # machine-readable report
 ```
 
@@ -114,9 +114,10 @@ fragment-side check can see.
 | `warp_sphere` | `prev` | zoom, zoomexp, rot_cs, warp, cx, cy, dx, dy, sx, sy, decay, aspect, texel, sphere |
 | `comp_default` | `fb` | inv_gamma, tone_r, tone_g, tone_b, tone_o |
 | `comp_softmax` | `fb` | soft_rot, soft_scale, soft_mix + the `comp_default` set |
-| `comp_plasma` | `fb` | plasma_scale, plasma_speed, plasma_lift, plasma_glow + the `comp_default` set, and the host's u_resolution and u_time |
-| `comp_rotoblur` | `fb` | blur_rot, blur_step, blur_rad, blur_mix + the `comp_default` set, and the host's u_resolution |
+| `comp_plasma` | `fb` | plasma_scale, plasma_speed, plasma_lift, plasma_glow, plasma_c + the `comp_default` set, and the host's u_resolution and u_time |
+| `comp_rotoblur` | `fb` | blur_rot, blur_step, blur_start, blur_dth, blur_rad, blur_mix, aspect + the `comp_default` set |
 | `blur1` | `src` | texel, blur_w, blur_d, blur_scale, blur_bias |
+| `blit` | `fb` | none (the last pass: stretches the composite target over the screen) |
 | `warp_kaleido` | `prev` | the `warp_sphere` set minus `sphere`, + `sectors`, `kaleido_angle` |
 | `warp_blur` | `prev`, `prev_blur` | the `warp_sphere` set minus `sphere`, + `blur_warp`, `blur_spread` |
 | `warp_diffuse` | `prev` | rd_feed, rd_kill, rd_dt, rd_scale, texel (no geometric uniforms — it never warps) |
@@ -127,4 +128,4 @@ the one preset parameter that is not a uniform: it selects the reduced content t
 
 `warp_blur` needs a second texture, so the mode runs a `blur1` pass over the feedback
 target *before* the warp whenever `warp_archetype = blur`, into the mode's `blur`
-target. No other pass uses that target.
+target, which is half the content size in each direction. No other pass uses that target.

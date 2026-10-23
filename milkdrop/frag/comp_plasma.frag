@@ -12,7 +12,7 @@
 // drives a two-stop ramp defined here — and the field modulates the scene
 // rather than replacing it, because a composite pass has to composite the
 // warped feedback rather than erase it. No samplers beyond fb, so the cost is
-// 4 sin + 2 length + 1 detail sin per pixel.
+// 6 sin + 2 length per pixel (the orbiting centres' trig is done in Lua).
 //
 // uv.y is top-down in eyesy shader space; the field is read in y-up Cartesian
 // screen-height units, the space the source itself uses
@@ -27,6 +27,9 @@
 //   plasma_speed  float     default 1.0  (time rate; negative runs it backwards)
 //   plasma_lift   float     default 0.6  (how hard the field drives the scene)
 //   plasma_glow   float     default 0.25 (quantity of veil light added)
+//   plasma_c     vec4      default (0, 0.2, 0.25, 0)  (xy: the first orbiting centre, zw: the
+//                second, in screen-height units: sin/cos of the time, built once a frame
+//                in main.lua so the pixel pays no trig for them)
 //   inv_gamma    float     default 1.0   (1 / gamma: the exposure power)
 //   tone_r/g/b   vec3      default (1,0,0) (0,1,0) (0,0,1)  rows of the tone matrix
 //   tone_o       vec3      default (0,0,0)  (offset). Bright, contrast, saturation,
@@ -43,6 +46,7 @@ uniform float plasma_scale;
 uniform float plasma_speed;
 uniform float plasma_lift;
 uniform float plasma_glow;
+uniform vec4 plasma_c;
 uniform float inv_gamma;
 uniform vec3 tone_r;
 uniform vec3 tone_g;
@@ -68,9 +72,9 @@ void main() {
     // repeats; the two radial centres orbit rather than sit still.
     float v1 = wave(p.x * 6.2 * k + t * 0.7);
     float v2 = wave((p.x * 3.4 + p.y * 4.6) * k - t * 1.1);
-    vec2 c3 = vec2(sin(t * 0.41) * 0.30, cos(t * 0.37) * 0.20);
+    vec2 c3 = plasma_c.xy;
     float v3 = wave(length(p - c3) * 9.4 * k - t * 1.9);
-    vec2 c4 = vec2(cos(t * 0.29) * 0.25, sin(t * 0.53) * 0.15);
+    vec2 c4 = plasma_c.zw;
     float v4 = wave(length(p - c4) * 6.6 * k + t * 1.3);
 
     // The average is already smooth and inside 0..1; a second harmonic riding

@@ -358,7 +358,11 @@ local function target_set(w, h)
   local key = w .. "x" .. h
   local set = targets[key]
   if set == nil then
-    set = { front = e.target(w, h), back = e.target(w, h), blur = e.target(w, h),
+    -- The blurred copy is a smooth, horizontally blurred image that the warp
+    -- reads back with a linear filter, so it is kept at half size in each
+    -- direction: a quarter of the pixels to fill and nothing to see.
+    set = { front = e.target(w, h), back = e.target(w, h),
+            blur = e.target(math.floor(w / 2), math.floor(h / 2)),
             comp = e.target(w, h) }
     targets[key] = set
   end
@@ -565,7 +569,7 @@ local function tone_uniforms(u, gamma, bright, contrast, saturation, hue, echo)
 end
 
 -- Comp archetype selection and its uniforms. Returns (shader, u).
-local function comp_shader_and_uniforms(hue_knob)
+local function comp_shader_and_uniforms(hue_knob, comp_time)
   local arch = preset.comp_archetype
   local u = {}
   if arch == "softmax" then
@@ -579,12 +583,20 @@ local function comp_shader_and_uniforms(hue_knob)
     u.plasma_speed = clamp_num(cp.plasma_speed, 1.0, -4.0, 4.0)
     u.plasma_lift = clamp_num(cp.plasma_lift, 0.6, 0.0, 2.0)
     u.plasma_glow = clamp_num(cp.plasma_glow, 0.25, 0.0, 2.0)
+    -- the two orbiting centres move with the same clock the fragment's t uses
+    -- (u_time * plasma_speed), so their trig is once a frame, not once a pixel
+    local t = comp_time * u.plasma_speed
+    u.plasma_c = { math.sin(t * 0.41) * 0.30, math.cos(t * 0.37) * 0.20,
+                   math.cos(t * 0.29) * 0.25, math.sin(t * 0.53) * 0.15 }
   elseif arch == "rotoblur" then
     local cp = preset.comp_params or {}
     u.blur_rot = clamp_num(cp.blur_rot, 0.18, -PI, PI)
     u.blur_rad = clamp_num(cp.blur_rad, 0.02, -0.5, 0.5)
     u.blur_mix = clamp_num(cp.blur_mix, 0.75, 0.0, 1.0)
-    u.blur_step = { math.cos(u.blur_rot / 8), math.sin(u.blur_rot / 8) } -- TAPS = 8
+    u.blur_step = { math.cos(u.blur_rot / 6), math.sin(u.blur_rot / 6) } -- TAPS = 6
+    u.blur_start = { math.cos(u.blur_rot / 2), -math.sin(u.blur_rot / 2) }
+    u.blur_dth = u.blur_rot / 6
+    u.aspect = content_w / content_h
   end
   tone_uniforms(u, state.gamma, state.bright, state.contrast, state.saturation,
                 clamp(state.hue + (hue_knob - 0.5) * HUE_SPAN, -TWO_PI, TWO_PI),
@@ -772,6 +784,7 @@ return {
     shader.comp_plasma = e.shader("frag/comp_plasma.frag")
     shader.comp_rotoblur = e.shader("frag/comp_rotoblur.frag")
     shader.blur1 = e.shader("frag/blur1.frag")
+    shader.blit = e.shader("frag/blit.frag")
 
     -- Compile the whole catalog up front: preset switching is then allocation
     -- free apart from the state table.
@@ -898,16 +911,17 @@ return {
     draw_particles(w, h, dt * speed)
     e.end_target()
 
-    -- (6) composite at content resolution, then upscale to the screen:
+    -- (6) composite at content resolution, then upscale to the screen (a shader
+    -- pass, not draw_target: it is about 4 ms cheaper on the EYESY, see blit.frag):
     -- the tone/gather math dominates the frame budget at 1280x720, and the
     -- whole scene library already upscales content passes (SCENE-LIBRARY).
-    local comp_sh, comp_u = comp_shader_and_uniforms(hue_knob)
+    local comp_sh, comp_u = comp_shader_and_uniforms(hue_knob, ctx.time)
     e.begin_target(comp_out)
     e.color(1, 1, 1)
     e.draw_shader(comp_sh, ctx.time, energy, motion, comp_u, { fb = back })
     e.end_target()
     e.color(1, 1, 1)
-    e.draw_target(comp_out, 0, 0, ctx.width, ctx.height)
+    e.draw_shader(shader.blit, ctx.time, energy, motion, {}, { fb = comp_out })
 
     -- (7) ping-pong
     front, back = back, front

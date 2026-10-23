@@ -188,9 +188,10 @@ CASES: list[dict] = [
     {"frag": "comp_plasma", "checks": ["renders", "differs"]},
     {"frag": "comp_rotoblur", "checks": ["renders", "differs"]},
     {"frag": "comp_rotoblur", "label": "no sweep", "checks": ["identity"],
-     "over": {"blur_rot": 0.0, "blur_step": "1,0", "blur_rad": 0.0, "blur_mix": 1.0,
+     "over": {"blur_rot": 0.0, "blur_step": "1,0", "blur_start": "1,0", "blur_dth": 0.0, "blur_rad": 0.0, "blur_mix": 1.0,
               "inv_gamma": 1.0, "tone_r": "1,0,0", "tone_g": "0,1,0", "tone_b": "0,0,1", "tone_o": "0,0,0"}},
     {"frag": "blur1", "checks": ["renders", "differs"], "over": {"blur_scale": 1.0, "blur_bias": 0.0}},
+    {"frag": "blit", "checks": ["renders", "identity"]},
 ]
 
 # Cases that only exist to prove the gate's own checks fire.

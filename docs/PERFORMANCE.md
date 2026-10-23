@@ -91,6 +91,63 @@ Rendering the composite at 480x270 instead of 640x360 would save about 1 ms more
 every preset, but it softens fine lines (mean difference up to 4.8 of 255 with loud
 audio), so it is not enabled.
 
+**Offscreen median, October 2026 (frame budget pass).** Same method and the same
+24.5 ms `starter` floor as the previous section; "Before" is the pack at commit
+078412a. Every preset in the table is now inside tier C.
+
+| Slot | Preset | Before | After |
+| --- | --- | --- | --- |
+| 6 | `sphere-rush` | 33.9 ms | 29.5 ms |
+| 9 | `custom-wave-ring` | not re-measured | 28.9 ms |
+| 13 | `flow-silk-warp` | 33.2 ms | 28.9 ms |
+| 16 | `spirolateral` | not re-measured | 29.0 ms |
+| 17 | `softmax-halo` | 34.5 ms | 30.1 ms |
+| 18 | `plasma-veil` | 37.8 ms | 32.0 ms |
+| 19 | `kaleido-fold` | 36.0 ms | 31.6 ms |
+| 20 | `roto-streaks` | 39.1 ms | 32.8 ms |
+| 21 | `painterly-flow` | 38.7 ms | 31.7 ms |
+| 22 | `reaction-field` | 34.0 ms | 29.6 ms |
+| 23 | `starfield-drift` | 33.3 ms | 29.0 ms |
+
+Until this pass every preset read 33.2 ms or more, and the readings clustered at
+33.2 whatever the preset, which looked like a floor. It was the upscale. Taking
+the screen draw out of a forced `roto-streaks` dropped it from 32.4 to 27.0 ms, so
+the stretch of the 640x360 composite over 1280x720 was costing 5.4 ms.
+
+- **The upscale is a shader pass.** `e.draw_target(comp_out, 0, 0, w, h)` is now
+  `e.draw_shader(blit, ..., { fb = comp_out })` (`frag/blit.frag`, a textured
+  copy). Same picture, byte for byte in the desktop verifier on every preset that
+  nothing else touched, and 4.2 ms cheaper on the EYESY for every preset. This is
+  where most of the table above comes from (e.g. `flow-silk-warp` 33.2 to 28.9).
+- **`comp_plasma`: the centres' trig is in Lua.** The two orbiting centres move
+  with sin/cos of the time, which the pixel was computing for all 230k pixels
+  (four trig calls). They arrive as `plasma_c`. `plasma-veil` 33.4 to 32.0 ms
+  after the upscale change. Desktop A/B: at most 1 of 255 per pixel, mean 0.00.
+- **`blur1` runs at half size.** The blurred copy that `warp_blur` reads is a
+  smooth, horizontally blurred image sampled back with a linear filter, so the
+  `blur` target is 320x180 (a quarter of the pixels, same taps in source texels).
+  `painterly-flow` 34.3 to 31.7 ms after the upscale change. Desktop A/B: mean
+  0.41 of 255 over its verifier runs (1.27 with loud audio, worst pixel 36).
+- **`comp_rotoblur`: 6 taps, no per-pixel `sin`.** The gather lost two of its
+  eight taps (about 0.55 ms each); the dither offset comes from interleaved
+  gradient noise instead of `fract(sin(..))`; the first tap's cos/sin is built
+  from a Lua start angle and a short series for the small per-pixel offset; the
+  tap loop works in uv units so it has no division. `roto-streaks` 34.8 to 32.8 ms
+  after the upscale change. Desktop A/B: mean 1.6 of 255 (3.2 with loud audio),
+  almost all of it the new dither pattern and the thinner smear, not a different
+  picture. This is the only preset whose look changed visibly, and it has the
+  least headroom: the frame is 32.8 ms, 0.5 ms under the budget.
+- `kaleido-fold` needed nothing beyond the upscale (36.0 to 31.6 ms), and its
+  desktop A/B is byte-identical.
+
+Things measured and not worth doing: closing and reopening the `back` target
+between the warp and the waves costs nothing measurable (merging them changed no
+number); custom-wave point counts do not show at this resolution (halving
+`roto-streaks`' two 192-point waves moved nothing); the warp's own maths is 0.4 ms
+(replacing it with a plain copy saved that much). Each extra cheap, cache-local
+fetch in a full-size pass is 0.19 ms, and a dependent gather such as a rotated
+roto-blur tap is 0.55 ms, which is the unit to count in.
+
 ## What keeps it fast
 
 - **Render at content resolution, then upscale.** The feedback runs at 640×360

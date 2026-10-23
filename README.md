@@ -198,7 +198,7 @@ good, and speed on the device.
 | `milkdrop/main.lua` | The mode: knobs, audio, preset loading and the warp → waves → composite pipeline |
 | `milkdrop/lib/evaluator.lua` | The MilkDrop-style equation language |
 | `milkdrop/presets/presets.lua` | The preset catalog |
-| `milkdrop/frag/` | The 10 shaders: five warps, four composites and a blur |
+| `milkdrop/frag/` | The 11 shaders: five warps, four composites, a blur and the final copy to the screen |
 | `tools/` | The checks |
 | `tests/` | The evaluator's unit tests |
 | `docs/` | The [preset format](docs/PRESET-FORMAT.md), [performance](docs/PERFORMANCE.md) and [porting](docs/PORTING.md) guides, the check contracts, and [research notes](docs/research/README.md) on MilkDrop's history and engines |
