@@ -119,6 +119,11 @@ the stretch of the 640x360 composite over 1280x720 was costing 5.4 ms.
   copy). Same picture, byte for byte in the desktop verifier on every preset that
   nothing else touched, and 4.2 ms cheaper on the EYESY for every preset. This is
   where most of the table above comes from (e.g. `flow-silk-warp` 33.2 to 28.9).
+  The cost was openFrameworks' default shader on the Pi, which every
+  `draw_target` went through; eyesy-platform d2f0d67 draws targets with its own
+  straight-line shader, after which the old `draw_target` version measures 29.07
+  against 28.92 for the blit. The blit stays: it works on older engines and
+  skips alpha blending.
 - **`comp_plasma`: the centres' trig is in Lua.** The two orbiting centres move
   with sin/cos of the time, which the pixel was computing for all 230k pixels
   (four trig calls). They arrive as `plasma_c`. `plasma-veil` 33.4 to 32.0 ms

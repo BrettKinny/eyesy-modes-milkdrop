@@ -912,7 +912,8 @@ return {
     e.end_target()
 
     -- (6) composite at content resolution, then upscale to the screen (a shader
-    -- pass, not draw_target: it is about 4 ms cheaper on the EYESY, see blit.frag):
+    -- pass rather than draw_target: on engines before d2f0d67 it is about 4 ms
+    -- cheaper on the EYESY, and it skips blending, see blit.frag):
     -- the tone/gather math dominates the frame budget at 1280x720, and the
     -- whole scene library already upscales content passes (SCENE-LIBRARY).
     local comp_sh, comp_u = comp_shader_and_uniforms(hue_knob, ctx.time)
